@@ -1,0 +1,926 @@
+# Second Brain - Idea File
+
+A paste-into-Claude-Code blueprint for building a personal second brain on top of markdown, local files, scheduled scripts, Obsidian, and Claude Code.
+
+This is inspired by Andrej Karpathy's LLM Wiki gist, Garry Tan's GBrain, and Noah Brier's Obsidian + Claude Code setup described on Dan Shipper's AI & I podcast.
+
+This is not a drop-in installer, and it is not the finished Mac app.
+
+It is an idea file. Paste it into Claude Code from an empty folder with this prompt:
+
+> Set up a second brain for me based on this file. Ask me the questions you need to tailor it to my work, then scaffold the folders, schema, starter skills, sync jobs, and local dashboard.
+
+Expect to spend an afternoon setting up the first version, then a week or two tuning it to your life.
+
+The goal is simple: build an AI system with enough real-time context to help you get things done.
+
+---
+
+## 1. What you are building
+
+You are building a local second brain with four loops.
+
+1. Sources bring in raw context.
+2. Knowledge turns raw context into reusable memory.
+3. Tasks turn context into action.
+4. Outputs create artefacts that become new context.
+
+Every second brain is different, but every second brain shares this shape.
+
+Sources are the places and routines that bring raw material into the system: meetings, emails, Slack threads, WhatsApp messages, calendar events, documents, notes, and transcripts.
+
+Knowledge is what should be remembered and reused: people, projects, decisions, companies, topics, preferences, and operating context.
+
+Tasks are the things that need action: replies, drafts, briefs, plans, reviews, follow-ups, research, and decisions.
+
+Outputs are the artefacts the system helps produce: emails, plans, docs, decks, briefs, tickets, meeting prep, and follow-up messages.
+
+The loops matter because they feed each other.
+
+Outputs become new source material. A draft gets feedback. A meeting creates a transcript. A decision updates a project page. A task creates a new artefact. Over time, the system compounds because each piece of work leaves behind better context for the next one.
+
+The whole thing should sit inside a local folder of plain markdown files, with optional UI on top.
+
+Markdown is the source of truth. The dashboard is just a way to read and act on the files.
+
+---
+
+## 2. The architecture
+
+Build the system in four lanes.
+
+1. Sources
+2. Processing
+3. Destinations
+4. Interface
+
+Sources are the tools where context starts.
+
+Processing is a set of small scheduled scripts that pull from those sources, classify what came back, and decide what to write.
+
+Destinations are where the processed context lands: wiki pages for knowledge, task cards for work.
+
+Interface is where you use it: Obsidian for the wiki, and a simple canvas or dashboard for tasks.
+
+Start with this folder structure:
+
+```text
+your-second-brain/
+├── 0_inbox/
+│   ├── notes/
+│   ├── drops/
+│   └── clips/
+│
+├── 1_knowledge/
+│   ├── raw/
+│   │   ├── granola/
+│   │   ├── fireflies/
+│   │   ├── gmail/
+│   │   ├── slack/
+│   │   ├── whatsapp/
+│   │   └── calendar/
+│   │
+│   ├── wiki/
+│   │   ├── people/
+│   │   ├── projects/
+│   │   ├── companies/
+│   │   ├── topics/
+│   │   ├── decisions/
+│   │   └── concepts/
+│   │
+│   └── reference/
+│       ├── identity.md
+│       ├── preferences.md
+│       ├── writing-style.md
+│       ├── tools.md
+│       └── operating-rules.md
+│
+├── 2_tasks/
+│   ├── todo/
+│   ├── handoff/
+│   ├── review/
+│   ├── done/
+│   └── archived/
+│
+├── 3_operations/
+│   ├── sync/
+│   ├── jobs/
+│   ├── hooks/
+│   ├── logs/
+│   └── health/
+│
+├── 4_outputs/
+│   ├── drafts/
+│   ├── briefs/
+│   ├── plans/
+│   ├── decks/
+│   └── sent/
+│
+├── 5_archive/
+│
+├── .claude/
+│   ├── skills/
+│   └── settings.json
+│
+├── app/
+│   └── optional local dashboard
+│
+└── CLAUDE.md
+```
+
+Keep this simple. Do not build a giant application first.
+
+The files are the product. The UI comes later.
+
+---
+
+## 3. Sources
+
+Start with one or two sources. Do not connect everything on day one.
+
+Good first sources:
+
+- Granola or Fireflies for meeting transcripts
+- Gmail for important email threads
+- Slack for team context
+- Calendar for what is coming up
+- Manual notes for anything that does not come from an API
+
+Each source should have one small sync script.
+
+The job of a sync script is narrow.
+
+1. Pull from one API or export.
+2. Write raw markdown into `1_knowledge/raw/<source>/`.
+3. Add clean frontmatter.
+4. Log what happened.
+5. Never silently fail.
+
+Example raw file:
+
+```markdown
+---
+type: raw_source
+source: granola
+title: Alex and Sarah 1:1
+date: 2026-05-07
+people:
+  - Sarah Chen
+  - Alex Rivera
+status: unprocessed
+created: 2026-05-07T09:00:00
+---
+
+[Raw transcript or cleaned source text here]
+```
+
+Raw files should be treated as immutable. Once they land, do not edit them by hand.
+
+If something goes wrong later, the raw source is how the system can check itself.
+
+---
+
+## 4. Processing
+
+Each source gets a small scheduled script.
+
+Do not build one giant brain script.
+
+The pattern for each script is:
+
+1. Pull from the source.
+2. Classify what came back.
+3. Extract knowledge.
+4. Extract tasks.
+5. Write markdown.
+6. Log the run.
+
+For classification, use the cheapest model that does the job reliably. A fast, low-cost model is usually enough to decide whether something is a meeting summary, a task, a person update, a project update, or noise.
+
+Use stronger models only when synthesis matters.
+
+The processing layer should answer two questions.
+
+1. What did we learn?
+2. What needs to happen?
+
+If we learned something durable, update the wiki.
+
+If something needs action, create a task card.
+
+If both are true, do both.
+
+---
+
+## 5. Knowledge
+
+Knowledge lives in `1_knowledge/wiki/`.
+
+The wiki is your personal Wikipedia. It is not a pile of notes. It is not a vector database pretending to be memory.
+
+Each page should be human-readable, linked, dated, and easy for Claude to inspect.
+
+Use pages for:
+
+- People
+- Projects
+- Companies
+- Topics
+- Decisions
+- Concepts
+
+A person page should look like this:
+
+```markdown
+---
+type: person
+name: Sarah Chen
+role: VP Product at Acme
+last_updated: 2026-05-07
+sources:
+  - raw/granola/2026-05-07-sarah-1-1.md
+---
+
+## Identity
+
+Who they are, what they do, and where they work.
+
+## Relationship
+
+How you know them, how you usually interact, and what matters in the relationship.
+
+## Current context
+
+What is happening with them right now.
+
+## Recent interactions
+
+- 2026-05-07: Discussed pricing rollout and the open launch risks.
+
+## Open threads
+
+- Thing they owe you.
+- Thing you owe them.
+- Topic to raise next time.
+
+## Notes
+
+Preferences, personal context, working style, and anything worth remembering.
+```
+
+A project page should look like this:
+
+```markdown
+---
+type: project
+name: Atlas
+status: active
+last_updated: 2026-05-07
+sources:
+  - raw/slack/2026-05-07-atlas-thread.md
+---
+
+## Summary
+
+What this project is and why it matters.
+
+## Current state
+
+Where things stand right now.
+
+## Decisions
+
+- 2026-05-07: We decided to delay launch by one week because onboarding was not ready.
+
+## People
+
+- [[Sarah Chen]]
+- [[Mark Stevens]]
+
+## Open questions
+
+- What is still blocked?
+- Who needs to decide?
+- What changes if this slips?
+
+## Next actions
+
+Link to task cards where relevant.
+```
+
+Page shape matters more than page volume.
+
+If pages have predictable structure, Claude can use them reliably.
+
+---
+
+## 6. Tasks
+
+Tasks live as markdown cards in `2_tasks/`.
+
+The task canvas is the main operating interface.
+
+Use these lanes:
+
+- `todo`
+- `handoff`
+- `review`
+- `done`
+- `archived`
+
+A task card should be more than a to-do item.
+
+It should carry:
+
+- The task
+- Why it matters
+- Source context
+- Linked wiki pages
+- A handoff prompt
+- The output
+- Review notes
+
+Example task card:
+
+```markdown
+---
+type: task
+title: Draft reply to Sarah on Atlas launch timing
+status: todo
+priority: high
+created: 2026-05-07
+due: 2026-05-08
+source:
+  - raw/granola/2026-05-07-sarah-1-1.md
+wiki:
+  - wiki/people/sarah-chen.md
+  - wiki/projects/atlas.md
+output: null
+---
+
+## What
+
+Draft a clear reply to Sarah about the Atlas launch timing.
+
+## Why
+
+We need to confirm whether the launch moves by one week and what that means for the onboarding plan.
+
+## Context
+
+Sarah raised concerns about onboarding readiness in the 1:1. The team has not yet agreed whether the delay is official.
+
+## Handoff prompt
+
+Write a concise reply in my voice. Acknowledge the concern, confirm that I agree with a one-week delay if onboarding is not ready, and ask her to send the final risk list by Friday.
+
+## Output
+
+Empty until Claude produces the draft.
+
+## Review notes
+
+Empty until I review the output.
+```
+
+When Claude starts work on a card, move it to `handoff`.
+
+When Claude returns an artefact, move it to `review`.
+
+When you approve or send it, move it to `done`.
+
+The task system should make it obvious what is waiting for you and what is waiting for AI.
+
+---
+
+## 7. Outputs
+
+Outputs live in `4_outputs/`.
+
+Outputs are not disposable. They are part of the loop.
+
+Store:
+
+- Draft replies
+- Meeting briefs
+- Planning docs
+- Research summaries
+- Deck outlines
+- Decisions
+- Follow-up messages
+
+Every output should link back to the task that created it and the wiki pages it used.
+
+Example output frontmatter:
+
+```markdown
+---
+type: output
+kind: email_draft
+created: 2026-05-07
+task: 2_tasks/review/draft-reply-to-sarah.md
+wiki_read:
+  - wiki/people/sarah-chen.md
+  - wiki/projects/atlas.md
+status: draft
+---
+
+[Output body here]
+```
+
+This is how the system compounds.
+
+The output becomes new context. The next meeting, reply, or task can read it.
+
+---
+
+## 8. Retrieval
+
+Before Claude answers a question or starts a task, it should check existing context.
+
+The order should be:
+
+1. Read the task card.
+2. Read the linked wiki pages.
+3. Search the wiki for related pages.
+4. Only then fall back to raw sources.
+5. If context is still missing, ask.
+
+Do not start from a blank prompt if the system already knows something.
+
+This is the difference between a chat session and a second brain.
+
+A chat session waits for you to explain everything again.
+
+A second brain checks what you already know.
+
+---
+
+## 9. Note hygiene
+
+A note is just a markdown file in the vault.
+
+It might be a meeting summary, a daily note, a project scratchpad, or a half-formed thought.
+
+The system should keep notes organised with small rules.
+
+### Link new notes to the wiki
+
+When a new note mentions a person, project, company, or topic that already has a wiki page, link it.
+
+Example:
+
+```markdown
+Discussed launch timing with [[Sarah Chen]] for [[Atlas]].
+```
+
+### Flag loose notes
+
+If a note has no links in or out, surface it in the next brief or dashboard health view.
+
+The system should ask:
+
+- Should this become a task?
+- Should this update a wiki page?
+- Should this be archived?
+- Should this be deleted?
+
+### Check prior context
+
+Before starting a new task, check whether the wiki already has relevant pages.
+
+Do not rediscover the same idea three months later because it was buried in a transcript.
+
+### Promote repeated notes
+
+If a daily note or scratchpad keeps getting referenced, promote it into a proper wiki page.
+
+Repeated use is a signal that the note has become durable knowledge.
+
+---
+
+## 10. System health
+
+Any second brain that runs in the background needs observability.
+
+Create a simple health system in `3_operations/health/`.
+
+Track three things.
+
+1. Sources
+2. Jobs
+3. Issues
+
+Sources tell you whether data is arriving.
+
+Jobs tell you whether routines are running.
+
+Issues tell you what needs attention.
+
+Example source health:
+
+```markdown
+---
+type: source_health
+source: granola
+status: healthy
+last_sync: 2026-05-07T08:00:00
+items_today: 4
+items_7d: 18
+---
+```
+
+Example job health:
+
+```markdown
+---
+type: job_health
+job: sync-granola
+status: healthy
+cadence: every 15 min
+last_run: 2026-05-07T08:15:00
+last_success: 2026-05-07T08:15:00
+---
+```
+
+Example issue:
+
+```markdown
+---
+type: issue
+status: warning
+created: 2026-05-07
+source: slack
+---
+
+## Problem
+
+Slack bot can see 52 channels but is not a member of any.
+
+## Fix
+
+Invite the bot to the channels you want ingested.
+```
+
+The local dashboard should show:
+
+- Source health
+- Job health
+- Open issues
+- Last successful run
+- Recommended fix
+
+Silent failure is the enemy. If a sync job breaks, you should know quickly.
+
+---
+
+## 11. Local dashboard
+
+Build the dashboard only after the file system works.
+
+The dashboard should read the markdown files and show them clearly.
+
+Start with four views:
+
+1. Today
+2. Canvas
+3. Wiki
+4. Health
+
+### Today
+
+A simple overview of what needs attention.
+
+Show:
+
+- Tasks due today
+- Items waiting for review
+- Failed jobs
+- Loose notes
+- Upcoming meetings
+
+### Canvas
+
+A kanban-style view over `2_tasks/`.
+
+Lanes:
+
+- Todo
+- Handoff
+- Review
+- Done
+
+Each card should show:
+
+- Title
+- Priority
+- Source
+- Linked wiki pages
+- Current status
+- Last updated
+
+### Wiki
+
+A browsable view of the wiki pages.
+
+Do not overbuild this. Obsidian already does most of the knowledge browsing well.
+
+The dashboard only needs enough to show which pages were read for a task.
+
+### Health
+
+A simple operations view.
+
+Lanes:
+
+- Sources
+- Jobs
+- Issues
+
+The dashboard should feel clean, quiet, and useful. No landing page. No marketing UI. No decorative gradients. This is an operating surface.
+
+---
+
+## 12. Starter skills
+
+Create these Claude Code skills under `.claude/skills/`.
+
+Each skill should have a `SKILL.md` with:
+
+```markdown
+---
+name: skill-name
+description: When to use this skill.
+---
+
+## When to use
+
+## Inputs
+
+## Steps
+
+## Output
+
+## Safety rules
+
+## What to update afterward
+```
+
+Start with these skills:
+
+### `sync-source`
+
+Use when adding a new source.
+
+It should ask which source to connect, what API or export is available, what should be pulled, and where raw files should land.
+
+### `refresh-knowledge`
+
+Use after new raw files arrive.
+
+It should read new raw files, identify people, projects, topics, and decisions, update wiki pages, and preserve links to sources.
+
+### `create-task-card`
+
+Use when something needs action.
+
+It should create a markdown task card with context, linked wiki pages, and a handoff prompt.
+
+### `handoff-task`
+
+Use when a task should be passed to Claude.
+
+It should read the card, read linked wiki pages, produce the requested output, and move the card to review.
+
+### `review-output`
+
+Use when you give feedback on an output.
+
+It should update the task card, revise the output if needed, and capture what should be remembered next time.
+
+### `check-health`
+
+Use to inspect sources, jobs, and issues.
+
+It should tell you what is healthy, what is stale, and what needs fixing.
+
+### `write-draft`
+
+Use for prose.
+
+It should read your writing preferences before drafting anything in your voice.
+
+### `researcher`
+
+Use for questions.
+
+It should search the wiki first, then raw sources, then external sources only if needed.
+
+---
+
+## 13. Packs
+
+Do not build packs on day one.
+
+As the system matures, repeated patterns become packs.
+
+A pack is a reusable bundle for a workflow you do often: preparing a 1:1, processing a customer call, running a weekly review, planning a launch, or drafting a proposal.
+
+A pack can contain:
+
+- Starter context
+- Task templates
+- Claude Code skills
+- Scheduled routines
+- Hooks and guardrails
+- Required connections
+- Dashboard defaults
+
+The point of a pack is to make a useful pattern portable without turning the whole second brain into one giant app.
+
+When you notice yourself solving the same shape of problem three or four times, extract the shape into a pack.
+
+---
+
+## 14. Hooks
+
+Configure hooks in `.claude/settings.json`.
+
+Start with guardrails, not cleverness.
+
+Recommended hooks:
+
+- After writing or editing a note, scan for known people, projects, companies, and topics, then suggest or add wiki links.
+- After creating a note, check whether it has links. If not, flag it as loose.
+- Before starting a new task, check whether related wiki pages already exist.
+- Before running a destructive shell command, block it.
+- Before making an external API write, ask for approval.
+- Before posting to Slack, email, or any other communication channel, ask for approval.
+- At the end of a session, log what changed.
+
+The hooks should make the system safer and cleaner. They should not make decisions on your behalf.
+
+---
+
+## 15. Sync jobs
+
+Put sync jobs in `3_operations/sync/`.
+
+Each job should be small enough to understand in one sitting.
+
+Minimum jobs:
+
+- `sync-granola.py`
+- `sync-fireflies.py`
+- `sync-gmail.py`
+- `sync-slack.py`
+- `sync-calendar.py`
+- `sync-whatsapp.py`
+
+Each job should:
+
+1. Pull from one source.
+2. Write raw markdown.
+3. Write or update health status.
+4. Append to a JSONL log.
+5. Fail loudly if something breaks.
+
+Schedule jobs with `launchd`, `cron`, or another local scheduler.
+
+Keep jobs independent. One broken source should not stop the whole system.
+
+---
+
+## 16. Obsidian setup
+
+Open the root folder as an Obsidian vault.
+
+Use Obsidian for browsing and editing knowledge.
+
+Recommended setup:
+
+- Enable graph view.
+- Enable daily notes.
+- Enable templates.
+- Store attachments in `5_archive/attachments/`.
+- Keep wiki pages plain and readable.
+- Avoid plugins that make the vault hard to parse from Claude Code.
+
+Obsidian is the human-readable interface for knowledge.
+
+The dashboard is the action interface for work.
+
+---
+
+## 17. First week
+
+Day 1: Scaffold the folder structure, `CLAUDE.md`, starter skills, and basic schemas.
+
+Day 2: Connect one source. Start with meeting transcripts because they are structured and high signal.
+
+Day 3: Process the first raw files into wiki pages. Review the pages by hand and fix the schema.
+
+Day 4: Create the first task cards from real work. Keep them simple.
+
+Day 5: Build the basic canvas over the task folders. Todo, handoff, review, done.
+
+Day 6: Run the handoff loop. Pick one card, have Claude produce the output, review it, and revise.
+
+Day 7: Add system health. Track source freshness, job runs, and open issues.
+
+After a week, you should have the bones.
+
+After a month, you should have something you would miss if it stopped.
+
+After three months, you should have a second brain.
+
+---
+
+## 18. Principles
+
+### Markdown is the source of truth
+
+Use plain files in plain folders.
+
+The dashboard, search index, vector store, and app UI are all optional layers on top.
+
+If the markdown is clear, the system can be rebuilt.
+
+### Context beats prompting
+
+A better prompt helps. Better context helps more.
+
+Before asking the model to work, give it the relevant pages, task card, source material, and definition of success.
+
+### Drafts, not sends
+
+Never auto-send email, Slack messages, WhatsApp messages, or external updates.
+
+Drafts are fine. Suggestions are fine. Sending requires human approval.
+
+### Small scripts beat large automations
+
+One script per source is easier to debug than one giant automation.
+
+Small pieces make the system understandable.
+
+### The schema evolves
+
+When the system surprises you, update the schema.
+
+If a wiki page is messy, tighten the page shape.
+
+If a task card is unclear, improve the card template.
+
+If a sync job fails, improve the health check.
+
+### The system is managed like a teammate
+
+Do not expect perfection.
+
+Brief it clearly, review the work, give feedback, and improve the operating rules.
+
+---
+
+## 19. What to build now
+
+Start by asking these questions:
+
+1. What is your work?
+2. What sources matter most?
+3. Which source should we connect first?
+4. Where do your tasks currently live?
+5. Do you use Obsidian?
+6. What outputs do you want help producing?
+7. What should never happen without approval?
+8. What should the first dashboard view show?
+
+Then scaffold the first version.
+
+Do not try to build the full system in one pass.
+
+Build the folders, schemas, first source sync, first wiki pages, first task cards, and first canvas.
+
+Then stop and ask for review.
+
+---
+
+## Credits
+
+Andrej Karpathy: LLM Wiki gist. The page-shape idea and the emphasis on readable knowledge are the core inspiration.
+
+Garry Tan: GBrain. The idea of a personal AI knowledge system that compounds over time is a major influence.
+
+Noah Brier: AI & I podcast with Dan Shipper. The Obsidian and Claude Code workflow helped make this feel practical.
+
+Claude Code: the tool that makes this possible for non-engineers who are willing to tinker.
+
+---
+
+Paste this file into Claude Code.
+
+Tell it what you do for a living.
+
+Let it ask you questions.
+
+Build from there.
